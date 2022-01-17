@@ -1,5 +1,7 @@
 const Account = require("./accounts-model")
 
+const db = require("../../data/db-config")
+
 exports.checkAccountPayload = (req, res, next) => {
   // DO YOUR MAGIC
   // Note: you can either write "manual" validation logic
@@ -20,33 +22,44 @@ exports.checkAccountPayload = (req, res, next) => {
     error.message = "budget of account is too large or too small"
   }
 
-  if(error.message) {
+  if (error.message) {
     next(error)
   } else {
     next()
   }
 }
 
-exports.checkAccountNameUnique = (req, res, next) => {
-  // DO YOUR MAGIC
-  console.log("checkAccountNameUnique middleware")
-  next()
-}
-
-exports.checkAccountId = async (req, res, next) => {
+exports.checkAccountNameUnique = async (req, res, next) => {
   // DO YOUR MAGIC
   try {
-    const account = await Account.getById(req.params.id)
-    if (!account) {
-      return next({
-        status: 404,
-        message: "account not found"
+    const existing = await db("accounts").where("name", req.body.name.trim()).first()
+    if( existing ) {
+      next({
+        status:400,
+        message:"that name is taken"
       })
     } else {
-      req.account = account
       next()
     }
   } catch (err) {
     next(err)
   }
 }
+
+  exports.checkAccountId = async (req, res, next) => {
+    // DO YOUR MAGIC
+    try {
+      const account = await Account.getById(req.params.id)
+      if (!account) {
+        return next({
+          status: 404,
+          message: "account not found"
+        })
+      } else {
+        req.account = account
+        next()
+      }
+    } catch (err) {
+      next(err)
+    }
+  }
